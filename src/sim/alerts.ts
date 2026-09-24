@@ -39,18 +39,29 @@ export function computeAlerts(g: Game): Alert[] {
   for (const k of ['wood', 'stone'] as const)
     if (g.s.stock[k] >= g.capacity[k] - 0.5) out.push({ id: 'cap-' + k, level: 'info', text: `Stock de ${k === 'wood' ? 'bois' : 'pierre'} plein`, x: tx, y: ty });
 
-  // Bâtiments en difficulté
+  // Bâtiments en difficulté (regroupés par type de problème au-delà de deux)
+  const groups: Record<string, { level: Alert['level']; items: { text: string; b: (typeof g.s.buildings)[number] }[]; plural: string }> = {
+    dis: { level: 'bad', items: [], plural: 'bâtiments non reliés à la route' },
+    staff: { level: 'warn', items: [], plural: 'bâtiments sans personnel' },
+    res: { level: 'warn', items: [], plural: 'exploitations sans ressource' },
+    full: { level: 'info', items: [], plural: 'services à capacité saturée' },
+  };
   for (const b of g.s.buildings) {
     const st = g.status.get(b.id);
-    if (!st || st.status === 'active') continue;
-    if (b.type === 'house') continue;
+    if (!st || st.status === 'active' || b.type === 'house') continue;
     const name = BUILDINGS[b.type].name;
-    const [cx, cy] = g.center(b);
-    if (st.status === 'disconnected') out.push({ id: 'dis' + b.id, level: 'bad', text: `${name} non relié(e) à la route`, x: cx, y: cy, buildingId: b.id });
-    else if (st.status === 'nostaff') out.push({ id: 'staff' + b.id, level: 'warn', text: `${name} sans personnel`, x: cx, y: cy, buildingId: b.id });
-    else if (st.status === 'noresource') out.push({ id: 'res' + b.id, level: 'warn', text: `${name} : ${st.msg.toLowerCase()}`, x: cx, y: cy, buildingId: b.id });
-    else if (st.status === 'full' && (b.type === 'altar' || b.type === 'school' || b.type === 'clinic'))
-      out.push({ id: 'full' + b.id, level: 'info', text: `${name} : capacité saturée`, x: cx, y: cy, buildingId: b.id });
+    if (st.status === 'disconnected') groups.dis.items.push({ text: `${name} non relié(e) à la route`, b });
+    else if (st.status === 'nostaff') groups.staff.items.push({ text: `${name} sans personnel`, b });
+    else if (st.status === 'noresource') groups.res.items.push({ text: `${name} : ${st.msg.toLowerCase()}`, b });
+    else if (st.status === 'full' && (b.type === 'altar' || b.type === 'school' || b.type === 'clinic')) groups.full.items.push({ text: `${name} : capacité saturée`, b });
+  }
+  for (const [key, grp] of Object.entries(groups)) {
+    if (!grp.items.length) continue;
+    const list = grp.items.length > 2 ? [{ text: `${grp.items.length} ${grp.plural}`, b: grp.items[0].b }] : grp.items;
+    for (const it of list) {
+      const [cx, cy] = g.center(it.b);
+      out.push({ id: key + it.b.id + (list.length === 1 && grp.items.length > 2 ? 'g' : ''), level: grp.level, text: it.text, x: cx, y: cy, buildingId: it.b.id });
+    }
   }
   const discHouses = g.s.buildings.filter((b) => b.type === 'house' && !g.connected.has(b.id));
   if (discHouses.length) {

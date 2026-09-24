@@ -191,6 +191,17 @@ a[data-act] {
   font-size: 11px;
   opacity: 0.85;
 }
+#popbox .mini {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  gap: 1px;
+  opacity: 0.95;
+}
+#popbox .mini .ico {
+  width: 14px;
+  height: 14px;
+}
 #popbox .hap {
   display: flex;
   align-items: center;
@@ -947,9 +958,6 @@ ul.checks li.done::before {
 
 /* adaptation aux petits écrans */
 @media (max-width: 1440px) {
-  #popbox .pop small {
-    display: none;
-  }
   #menubtns button {
     padding: 4px 7px;
   }

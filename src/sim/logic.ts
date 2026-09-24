@@ -17,7 +17,6 @@ import { BUILDINGS, FARM_WATER_PER_FOOD, WELL_NEAR_WATER_BONUS } from '../config
 import { T_WATER, type Building, type Citizen, type EventKind } from './types';
 import type { Game } from './world';
 
-const SECOND = 1 / 60; // une seconde de jeu exprimée en années (YEAR_SECONDS = 60)
 
 export function logicStep(g: Game, dtY: number) {
   g.refreshNetwork();
@@ -79,16 +78,20 @@ export function updateServices(g: Game) {
       .filter((a) => dist(g, a, h) <= g.radius(a))
       .sort((a, b) => dist(g, a, h) - dist(g, b, h) || a.id - b.id);
     const n = occ.get(h.id) ?? 0;
-    for (const a of options) g.altarLoad.get(a.id)!.demand += n;
+    let served = false;
     for (const a of options) {
       const load = g.altarLoad.get(a.id)!;
       const cap = BUILDINGS.altar.users![a.level - 1];
       if (load.served + n <= cap) {
         load.served += n;
+        load.demand += n;
         g.altarOf.set(h.id, a.id);
+        served = true;
         break;
       }
     }
+    // Demande non satisfaite imputée à l'autel le plus proche.
+    if (!served && options.length) g.altarLoad.get(options[0].id)!.demand += n;
   }
 
   // Dispensaires : capacité = soignants × 12 habitants.
@@ -100,15 +103,18 @@ export function updateServices(g: Game) {
   for (const h of connectedHouses) {
     const n = occ.get(h.id) ?? 0;
     const options = clinics.filter((c) => dist(g, c, h) <= g.radius(c)).sort((a, b) => dist(g, a, h) - dist(g, b, h) || a.id - b.id);
-    for (const c of options) g.clinicLoad.get(c.id)!.demand += n;
+    let served = false;
     for (const c of options) {
       const load = g.clinicLoad.get(c.id)!;
       if (load.served + n <= load.capacity) {
         load.served += n;
+        load.demand += n;
         g.clinicOf.set(h.id, c.id);
+        served = true;
         break;
       }
     }
+    if (!served && options.length) g.clinicLoad.get(options[0].id)!.demand += n;
   }
 
   // Jardins : bonus plafonné.
@@ -619,11 +625,10 @@ function couples(g: Game, dtY: number) {
   }
 }
 
-/** Déménagements spontanés quand une maison libre permet d'agrandir un foyer (taux annuel). */
-const MOVE_RATE = 1.5;
+/** Déménagements spontanés quand une maison libre permet d'agrandir un foyer. */
 
 function relocate(g: Game, dtY: number) {
-  const p = 1 - Math.exp(-MOVE_RATE * dtY);
+  const p = 1 - Math.exp(-DEMOGRAPHY.moveRate * dtY);
   for (const c of g.s.citizens) {
     if (c.houseId === null || c.pregnancy) continue;
     const house = g.bById.get(c.houseId);
@@ -848,5 +853,4 @@ function progression(g: Game, dtY: number) {
       g.log('Tutoriel terminé : la colonie est sur de bons rails !', 'good');
     }
   }
-  void SECOND;
 }

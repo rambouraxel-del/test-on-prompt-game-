@@ -123,6 +123,8 @@ export const DEMOGRAPHY = {
   minHealth: 50,
   minFoodStock: 25,
   minWaterStock: 25,
+  /** Taux annuel de déménagement vers une maison plus spacieuse (foyers à l'étroit). */
+  moveRate: 1.5,
   /** Risque de décès lié à l'âge : base * growth^(âge - 65), par an. */
   oldAgeBase: 0.012,
   oldAgeGrowth: 1.12,

@@ -314,6 +314,16 @@ export class Renderer {
     items.sort((a, b) => a.y - b.y);
     for (const it of items) it.draw();
 
+    // Ambiance hivernale : voile froid léger.
+    if (g.seasonIndex === 3) {
+      const fade = Math.min(1, g.seasonProgress * 6, (1 - g.seasonProgress) * 6);
+      ctx.fillStyle = `rgba(215,232,255,${(0.16 * fade).toFixed(3)})`;
+      ctx.fillRect(x0 * TS, y0 * TS, (x1 - x0 + 1) * TS, (y1 - y0 + 1) * TS);
+    } else if (g.seasonIndex === 2) {
+      ctx.fillStyle = 'rgba(255,170,60,0.06)';
+      ctx.fillRect(x0 * TS, y0 * TS, (x1 - x0 + 1) * TS, (y1 - y0 + 1) * TS);
+    }
+
     // Voile sur les parcelles verrouillées.
     const PC = MAP.PARCEL;
     const PN = N / PC;

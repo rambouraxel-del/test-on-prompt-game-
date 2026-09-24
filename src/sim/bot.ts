@@ -1,6 +1,6 @@
 // Joueur automatique simple, utilisé pour les tests d'équilibrage et la simulation accélérée.
 import { BUILDINGS, type BuildingType } from '../config/buildings';
-import { MAP } from '../config/balance';
+import { MAP, SEASONS } from '../config/balance';
 import { demand, harvestableNodes, wellNearWater } from './logic';
 import type { Building } from './types';
 import type { Game } from './world';
@@ -88,10 +88,15 @@ export class Bot {
           }
           // Laisse une marge libre autour pour ne pas étouffer le réseau.
           const s = score(x, y, w, h) + roadLen * 1.2;
+          if (!Number.isFinite(s)) continue;
           if (!best || s < best.score) best = { x, y, rot, score: s, roadFrom };
         }
     }
-    if (!best) return null;
+    if (!best) {
+      // Plus de place : on agrandit le territoire si possible.
+      this.expand();
+      return null;
+    }
     // Route d'accès éventuelle (construite après le bâtiment pour ne pas occuper son emplacement).
     const res = g.place(type, best.x, best.y, best.rot);
     if (!res.ok || !res.building) return null;
@@ -108,6 +113,21 @@ export class Bot {
     return res.building;
   }
 
+  expand(): boolean {
+    const g = this.g;
+    const P = g.N / MAP.PARCEL;
+    const [cx, cy] = g.center(g.townhall());
+    const opts: [number, number, number][] = [];
+    for (let py = 0; py < P; py++)
+      for (let px = 0; px < P; px++)
+        if (g.parcelCheck(px, py).ok) opts.push([px, py, Math.hypot(px * 16 + 8 - cx, py * 16 + 8 - cy)]);
+    opts.sort((a, b) => a[2] - b[2]);
+    if (!opts.length) return false;
+    g.buyParcel(opts[0][0], opts[0][1]);
+    this.actions.push(`an ${g.year}: parcelle ${opts[0][0]},${opts[0][1]}`);
+    return true;
+  }
+
   private nearCenter(x: number, y: number, w: number, h: number) {
     const th = this.g.townhall();
     const [cx, cy] = this.g.center(th);
@@ -118,7 +138,7 @@ export class Bot {
     return (x: number, y: number, w: number, h: number) => {
       const fake = { id: -1, type: kind, x, y, w, h, rot: 0 as const, level: 1, workers: [], target: 0, reserved: 0 };
       const n = harvestableNodes(this.g, fake).length;
-      if (n < 4) return 1e6;
+      if (n < 4) return Infinity;
       return this.nearCenter(x, y, w, h) * 0.3 - n * 1.5;
     };
   }
@@ -179,7 +199,12 @@ export class Bot {
       g.isUnlocked('farm') ? this.place('farm', nearCenter) ?? this.place('gatherer', nearCenter) : this.place('gatherer', nearCenter),
     );
     const farmWater = this.expected(['farm']) * 0.3;
-    this.ensure(['well'], d.water * 1.15 + farmWater + 8, () => this.place('well', nearCenter));
+    // Besoin d'eau estimé pour la saison la plus exigeante (été).
+    const summerWater = (d.water / Math.max(0.5, SEASONS[g.seasonIndex].waterUseMult)) * 1.35;
+    this.ensure(['well'], summerWater * 1.1 + farmWater + 8, () => this.place('well', nearCenter));
+    const houses = g.s.buildings.filter((b) => b.type === 'house').length;
+    this.ensure(['woodcutter'], houses * 4 + 30, () => this.place('woodcutter', this.resourceScore('woodcutter')));
+    this.ensure(['stonecutter'], 25, () => this.place('stonecutter', this.resourceScore('stonecutter')));
     const fill = (t: BuildingType, max: number) => {
       for (const b of g.s.buildings.filter((b) => b.type === t && g.connected.has(b.id)))
         while (b.workers.length < Math.min(max, g.jobCap(b)) && g.addWorker(b.id).ok);

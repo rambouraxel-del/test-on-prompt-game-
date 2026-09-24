@@ -199,6 +199,44 @@ await page.waitForTimeout(500);
 await page.screenshot({ path: 'e2e-shots/08-small.png' });
 check(await page.isVisible('#buildbar'), 'Barre de construction visible en 800×600');
 
+// --- Gestes tactiles : toucher pour sélectionner, glisser pour déplacer, pincer pour zoomer
+{
+  const ctx = await browser.newContext({ viewport: { width: 1024, height: 700 }, hasTouch: true });
+  const tp = await ctx.newPage();
+  tp.on('pageerror', (e) => errors.push('pageerror (tactile): ' + e.message));
+  await tp.goto(URL);
+  await tp.waitForTimeout(400);
+  await tp.click('[data-m="new"]');
+  await tp.click('[data-act="new-go"]');
+  await tp.waitForTimeout(400);
+  await tp.keyboard.press('Space');
+  const th = await tp.evaluate(() => {
+    const g = (window as any).__app.game;
+    const t = g.townhall();
+    return [t.x + 2, t.y + 2];
+  });
+  const [hx, hy] = await tileToScreen(tp, th[0], th[1]);
+  await tp.touchscreen.tap(hx, hy);
+  await tp.waitForTimeout(250);
+  check(await tp.isVisible('#panel'), 'Tactile : toucher sélectionne l’hôtel de ville');
+  const cdp = await ctx.newCDPSession(tp);
+  const cam0 = await tp.evaluate(() => ({ ...(window as any).__app.renderer.cam }));
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 500, y: 400 }] });
+  for (let i = 1; i <= 6; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 500 - i * 30, y: 400 - i * 10 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await tp.waitForTimeout(100);
+  const cam1 = await tp.evaluate(() => ({ ...(window as any).__app.renderer.cam }));
+  check(cam1.x > cam0.x + 20, `Tactile : glisser déplace la caméra (${cam0.x.toFixed(0)} → ${cam1.x.toFixed(0)})`);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 450, y: 350, id: 1 }, { x: 550, y: 350, id: 2 }] });
+  for (let i = 1; i <= 6; i++)
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 450 - i * 20, y: 350, id: 1 }, { x: 550 + i * 20, y: 350, id: 2 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await tp.waitForTimeout(100);
+  const cam2 = await tp.evaluate(() => ({ ...(window as any).__app.renderer.cam }));
+  check(cam2.zoom > cam1.zoom * 1.3, `Tactile : pincer zoome (${cam1.zoom.toFixed(2)} → ${cam2.zoom.toFixed(2)})`);
+  await ctx.close();
+}
+
 check(errors.length === 0, `Aucune erreur console (${errors.length})`);
 for (const e of errors) console.log('   ' + e);
 await browser.close();

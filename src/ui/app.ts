@@ -830,7 +830,8 @@ export class App {
     const hap = averageHappiness(g);
     patch(
       $('#popbox'),
-      `<button class="pop" data-act="population" title="Population : ${cs.length}\nEnfants : ${kids} · Adultes disponibles : ${avail} · Travailleurs : ${workers} · Retraités : ${elders}\n(P) Tableau de la population">${icon('pop')}<b>${cs.length}</b><small>${kids} enf. · ${avail} dispo · ${workers} trav. · ${elders} ret.</small></button>
+      `<button class="pop" data-act="population" title="Population : ${cs.length}\nEnfants : ${kids} · Adultes disponibles : ${avail} · Travailleurs : ${workers} · Retraités : ${elders}\n(P) Tableau de la population et des emplois">${icon('pop')}<b>${cs.length}</b>
+         <span class="mini" title="Enfants">${icon('child')}${kids}</span><span class="mini" title="Adultes disponibles">${icon('pop')}${avail}</span><span class="mini" title="Travailleurs">${icon('work')}${workers}</span><span class="mini" title="Retraités">${icon('elder')}${elders}</span></button>
        <div class="hap ${hap >= 70 ? 'good' : hap >= 50 ? '' : 'bad'}" title="Bonheur moyen des habitants">${icon('happy')}<b>${Math.round(hap)} %</b></div>`,
     );
     const s = SEASONS[g.seasonIndex];
