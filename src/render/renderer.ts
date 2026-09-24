@@ -317,8 +317,22 @@ export class Renderer {
     // Ambiance hivernale : voile froid léger.
     if (g.seasonIndex === 3) {
       const fade = Math.min(1, g.seasonProgress * 6, (1 - g.seasonProgress) * 6);
-      ctx.fillStyle = `rgba(215,232,255,${(0.16 * fade).toFixed(3)})`;
+      ctx.fillStyle = `rgba(215,232,255,${(0.2 * fade).toFixed(3)})`;
       ctx.fillRect(x0 * TS, y0 * TS, (x1 - x0 + 1) * TS, (y1 - y0 + 1) * TS);
+      // Flocons au sol (motif fixe) et flocons qui tombent.
+      ctx.fillStyle = `rgba(250,252,255,${(0.85 * fade).toFixed(3)})`;
+      for (let y = y0; y <= y1; y++)
+        for (let x = x0; x <= x1; x++) {
+          const i = y * N + x;
+          if (g.s.terrain[i] === T_WATER || g.occ[i] >= 0) continue;
+          const h = hash2(x, y, 9);
+          ctx.fillRect(x * TS + Math.floor(h * 14) + 1, y * TS + Math.floor(hash2(y, x, 10) * 14) + 1, 1, 1);
+          if (h > 0.5) ctx.fillRect(x * TS + Math.floor(hash2(x, y, 11) * 14) + 1, y * TS + Math.floor(h * 13) + 2, 1, 1);
+          if (h > 0.8) {
+            const fy = (realTime * 18 + h * 400) % (TS * 3);
+            ctx.fillRect(x * TS + Math.floor(hash2(x, y, 12) * 15) + Math.round(Math.sin(realTime + h * 6) * 2), y * TS - TS + fy, 1, 1);
+          }
+        }
     } else if (g.seasonIndex === 2) {
       ctx.fillStyle = 'rgba(255,170,60,0.06)';
       ctx.fillRect(x0 * TS, y0 * TS, (x1 - x0 + 1) * TS, (y1 - y0 + 1) * TS);

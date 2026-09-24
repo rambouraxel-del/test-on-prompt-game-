@@ -665,6 +665,16 @@ export function rehouse(g: Game) {
   if (!homeless.length) return;
   for (const grp of g.familyGroups(homeless)) {
     const need = grp.length;
+    // Un enfant sans abri rejoint de préférence le logement d'un parent.
+    const minor = grp.find((c) => c.age < AGES.ADULT);
+    if (minor) {
+      const parent = [minor.motherId, minor.fatherId].map((id) => (id !== null ? g.cById.get(id) : undefined)).find((p) => p && p.houseId !== null);
+      const ph = parent ? g.bById.get(parent.houseId!) : undefined;
+      if (ph && g.houseFree(ph) >= need) {
+        for (const c of grp) g.moveInto(c, ph);
+        continue;
+      }
+    }
     const h = g.findHouse(need);
     if (h) {
       for (const c of grp) g.moveInto(c, h);
