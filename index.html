@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Les Premiers Foyers</title>
+    <meta name="description" content="Jeu de gestion de colonie en pixel art, jouable dans le navigateur." />
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="hud" hidden>
+      <header id="topbar">
+        <div id="res"></div>
+        <div id="popbox"></div>
+        <div id="datebox"></div>
+        <div id="speed"></div>
+        <div id="menubtns">
+          <button data-act="quick-save" title="Sauvegarder">Sauver</button>
+          <button data-act="objectives" title="Objectifs">Objectifs</button>
+          <button data-act="help" title="Aide">?</button>
+          <button data-act="menu" title="Menu (Échap)">Menu</button>
+        </div>
+      </header>
+      <div id="goal"></div>
+      <aside id="left">
+        <div id="tutorial" hidden></div>
+        <div id="alerts"></div>
+        <div id="log"></div>
+      </aside>
+      <aside id="panel" hidden></aside>
+      <div id="minimap-wrap">
+        <canvas id="minimap" width="192" height="192"></canvas>
+        <button data-act="recenter" title="Recentrer sur la colonie (C)">Recentrer</button>
+      </div>
+      <nav id="buildbar">
+        <div id="cats"></div>
+        <div id="items"></div>
+      </nav>
+      <div id="tooltip" hidden></div>
+      <div id="toasts"></div>
+    </div>
+    <div id="modal-root" hidden></div>
+    <div id="menu" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
